@@ -2,7 +2,7 @@ import torch
 import torchvision
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 import os
 import argparse
 import time
@@ -23,11 +23,11 @@ def main():
     parser = argparse.ArgumentParser(description = 'Imagenette2 Classification Task')
     parser.add_argument('--lr', default = 5e-4, type = float, help = 'learning rate')
     parser.add_argument('--epoch', default = 300, type = int, help = 'epochs')
-    parser.add_argument('--batch_size', default = 24, type = int, help = 'batch size')
+    parser.add_argument('--batch_size', default = 32, type = int, help = 'batch size')
     parser.add_argument('--cuda', default = torch.cuda.is_available(), type = bool)
     parser.add_argument('--log_dir', default = './runs')
     parser.add_argument('--ckpt_dir', default = './model')
-    parser.add_argument('--model', default = 'vgg11')
+    parser.add_argument('--model', default = 'resnet50')
     args = parser.parse_args()
 
     epochs = args.epoch
@@ -61,7 +61,9 @@ def main():
     if model_name=='alexnet':
         model = AlexNet(n_classes=10).to(device)
     elif model_name in ['vgg11','vgg16','vgg19']:
-        model = VGG(n_classes=10, mode =model_name, in_channels=3).to(device)
+        model = VGG(n_classes=10, mode = model_name, in_channels=3).to(device)
+    elif model_name in ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152']:
+        model = ResNet(n_classes = 10, in_channels = 3, mode = model_name).to(device)
     else:
         raise NotImplementedError
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
@@ -118,19 +120,20 @@ def main():
         print("\t Train Loss : %.4f | Val Loss : %.4f"%(train_loss_mean, val_loss_mean))
         print("\t Train Acc@1 : %.4f | Train Acc@5 : %.4f"%(train_acc_dict['Acc@1'], train_acc_dict['Acc@5']))
         print("\t Val   Acc@1 : %.4f | Val   Acc@5 : %.4f"%(val_acc_dict['Acc@1'], val_acc_dict['Acc@5']))
-        writer.add_scalars(''.join([str(model_name),'/Train and Val Loss']), {'Train Loss' : train_loss_mean, 'Val Loss' : val_loss_mean}, epoch + 1)
-        writer.add_scalars(''.join([str(model_name), '/Train and Val Top 1 Acc']), {'Train Acc@1' : train_acc_dict['Acc@1'], 'Val Acc@1' : val_acc_dict['Acc@1']}, epoch + 1)
-        writer.add_scalars(''.join([str(model_name), '/Train and Val Top 5 Acc']), {'Train Acc@5' : train_acc_dict['Acc@5'], 'Val Acc@5' : val_acc_dict['Acc@5']}, epoch + 1)
+        # writer.add_scalars(''.join([str(model_name), '/Loss']), {'Train Loss' : train_loss_mean, 'Val Loss' : val_loss_mean}, epoch + 1)
+        # writer.add_scalars(''.join([str(model_name), '/Top 1 Acc']), {'Train Acc@1' : train_acc_dict['Acc@1'], 'Val Acc@1' : val_acc_dict['Acc@1']}, epoch + 1)
+        # writer.add_scalars(''.join([str(model_name), '/Top 5 Acc']), {'Train Acc@5' : train_acc_dict['Acc@5'], 'Val Acc@5' : val_acc_dict['Acc@5']}, epoch + 1)
+
+        writer.add_scalars(os.path.join(str(model_name), 'Loss'), {'\Train Loss' : train_loss_mean, '\Val Loss' : val_loss_mean}, epoch + 1)
+        writer.add_scalars(os.path.join(str(model_name), 'Top 1 Acc'), {'\Train Acc@1' : train_acc_dict['Acc@1'], '\Val Acc@1' : val_acc_dict['Acc@1']}, epoch + 1)
+        writer.add_scalars(os.path.join(str(model_name), 'Top 5 Acc'), {'\Train Acc@5' : train_acc_dict['Acc@5'], '\Val Acc@5' : val_acc_dict['Acc@5']}, epoch + 1)
 
         if val_loss_mean < best_val_loss:
             best_val_loss = val_loss_mean
             torch.save(model.state_dict(), os.path.join(ckpt_dir, '.'.join([model_name, 'pt'])))
 
-        if (epoch % 10 == 0) & (epoch <= 200):
+        if (epoch % 10 == 9) & (epoch <= 200):
             scheduler.step()
-        #
-        # for i in [0, 4, 8, 11, 15, 18]:
-        #     print(torch.sum(model.conv_layers[i].weight.data))
 
 
     writer.close()
