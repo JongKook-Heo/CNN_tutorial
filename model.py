@@ -106,7 +106,7 @@ class BasicBlock(nn.Module):
         x_clone = x.clone()
 
         x = self.relu(self.bn1(self.conv1(x)))
-        x = self.relu(self.bn2(self.conv2(x)))
+        x = self.bn2(self.conv2(x))
 
         if self.identity is not None:
             x_clone = self.identity(x_clone)
@@ -136,7 +136,7 @@ class BottleNeckBlock(nn.Module):
 
         x = self.relu(self.bn1(self.conv1(x)))
         x = self.relu(self.bn2(self.conv2(x)))
-        x = self.relu(self.bn3(self.conv3(x)))
+        x = self.bn3(self.conv3(x))
 
         if self.identity is not None:
             x_clone = self.identity(x_clone)
