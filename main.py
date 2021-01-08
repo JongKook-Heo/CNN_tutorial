@@ -8,7 +8,9 @@ import argparse
 import time
 import tqdm
 from utils import *
-from model import *
+from ResNet import *
+from VGG import *
+from AlexNet import *
 import random
 import numpy as np
 
@@ -23,11 +25,12 @@ def main():
     parser = argparse.ArgumentParser(description = 'Imagenette2 Classification Task')
     parser.add_argument('--lr', default = 5e-4, type = float, help = 'learning rate')
     parser.add_argument('--epoch', default = 300, type = int, help = 'epochs')
-    parser.add_argument('--batch_size', default = 32, type = int, help = 'batch size')
+    parser.add_argument('--batch_size', default = 24, type = int, help = 'batch size')
     parser.add_argument('--cuda', default = torch.cuda.is_available(), type = bool)
     parser.add_argument('--log_dir', default = './runs')
     parser.add_argument('--ckpt_dir', default = './model')
-    parser.add_argument('--model', default = 'resnet50')
+    parser.add_argument('--model', default = 'wrn34_2')
+    parser.add_argument('--width', default = 1, type = int, help = 'resnet width factor')
     args = parser.parse_args()
 
     epochs = args.epoch
@@ -37,6 +40,7 @@ def main():
     log_dir = args.log_dir
     model_name = args.model
     ckpt_dir = args.ckpt_dir
+    w_factor = args.width
     data_path = './datasets/imagenette2'
 
     writer = SummaryWriter(log_dir)
@@ -58,12 +62,12 @@ def main():
     train_loader = torch.utils.data.DataLoader(dataset = train_set, batch_size = batch_size, shuffle = True)
     val_loader = torch.utils.data.DataLoader(dataset = val_set, batch_size = batch_size, shuffle = False)
 
-    if model_name=='alexnet':
+    if model_name == 'alexnet':
         model = AlexNet(n_classes=10).to(device)
     elif model_name in ['vgg11','vgg16','vgg19']:
-        model = VGG(n_classes=10, mode = model_name, in_channels=3).to(device)
+        model = VGG(n_classes=10, mode=model_name, in_channels=3).to(device)
     elif model_name in ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152']:
-        model = ResNet(n_classes = 10, in_channels = 3, mode = model_name).to(device)
+        model = ResNet(n_classes=10, in_channels=3, mode=model_name, k = w_factor).to(device)
     else:
         raise NotImplementedError
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
